@@ -54,6 +54,12 @@ Check the generated `parser.c` against the tree-sitter runtime that `swift-tree-
 3. Add a case to `GrammarLanguage`, with its `tree_sitter_<name>()` and its extensions or info strings.
 4. Add a sample to `languageSamples` in `Tests/HighlightTests/SyntaxTests.swift`.
 
+## Patches
+
+`scripts/vendor-grammars.sh` applies `Grammars/patches/<name>-*.patch` to a grammar's sources after copying them, and stops if one no longer applies to a new pin. Update or drop the patch then; upstream may have fixed the bug.
+
+- `swift-comment-in-string.patch`: the Swift scanner read `/*` inside a string literal, as in `"/*"`, as the start of a block comment, and everything up to the next `*/` rendered as comment. Tree-sitter treats comments as valid everywhere, so the scanner was asked for one even inside a string; there, no other external token is valid. The patch makes the scanner decline a comment in that situation.
+
 ## Capture names
 
 Grammars name their captures differently: one says `@keyword.conditional`, another `@conditional`, Markdown's `@text.title`. `CaptureNames` in `Sources/Highlight/CaptureNames.swift` maps them onto the theme names that the renderer styles (`keyword`, `string`, `type`, …). A name that extends a theme name keeps its suffix (`keyword.return`), and the renderer classes both. Aliases replace the longest matching prefix. `variable` and `none` render unstyled; anything else unknown is ignored. A new grammar's queries may need new aliases there.

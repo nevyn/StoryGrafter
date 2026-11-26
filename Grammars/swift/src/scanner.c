@@ -710,6 +710,13 @@ static bool eat_operators(
     return false;
 }
 
+// Inside a string literal the parser accepts no external token but comments, which tree-sitter allows everywhere.
+static bool only_comment_valid(const bool *valid_symbols) {
+    if (!valid_symbols[BLOCK_COMMENT]) return false;
+    for (int i = BLOCK_COMMENT + 1; i <= FAKE_TRY_BANG; i++) if (valid_symbols[i]) return false;
+    return true;
+}
+
 static enum ParseDirective eat_comment(
     TSLexer *lexer,
     const bool *valid_symbols,
@@ -795,7 +802,7 @@ static enum ParseDirective eat_whitespace(
     }
 
     enum ParseDirective any_comment = CONTINUE_PARSING_NOTHING_FOUND;
-    if (ws_directive == CONTINUE_PARSING_TOKEN_FOUND && lookahead == '/') {
+    if (ws_directive == CONTINUE_PARSING_TOKEN_FOUND && !only_comment_valid(valid_symbols) && lookahead == '/') {
         bool has_seen_single_comment = false;
         while (lexer->lookahead == '/') {
             // It's possible that this is a comment - start an exploratory mission to find out, and if it is, look for what
@@ -1073,6 +1080,9 @@ bool tree_sitter_swift_external_scanner_scan(
 
     // Now consume comments (before custom operators so that those aren't treated as comments)
     enum TokenType comment_result;
+    if (only_comment_valid(valid_symbols)) {
+        return false;
+    }
     enum ParseDirective comment = ws_directive == CONTINUE_PARSING_SLASH_CONSUMED ? ws_directive : eat_comment(lexer, valid_symbols, /* mark_end */ true, &comment_result);
     if (comment == STOP_PARSING_TOKEN_FOUND) {
         lexer->mark_end(lexer);

@@ -81,6 +81,11 @@ echo "$pins" | while IFS='|' read -r name repo ref dir sub parts; do
         [ -f "$f" ] && cp "$f" "$dest/src/"
     done
     cp "$src"/tree_sitter/*.h "$dest/src/tree_sitter/"
+    for patch_file in "$grammars"/patches/"$name"-*.patch; do
+        [ -f "$patch_file" ] || continue
+        patch -s -p1 -d "$grammars" < "$patch_file" \
+            || { echo "error: $patch_file does not apply to $repo@$ref; update or drop it" >&2; exit 1; }
+    done
 
     # Grammars from one repo share its LICENSE and common/ headers, one level up.
     if [ "$sub" = "." ]; then group="$dest"; else group="$(dirname "$dest")"; fi
