@@ -150,3 +150,22 @@ func detectsLanguageFromPath(_ path: String, _ language: GrammarLanguage) {
 func normalisesCaptureNames(_ raw: String, _ expected: CaptureNames.Normalised) {
     #expect(CaptureNames.normalise(raw) == expected)
 }
+
+@Test func commentMarkersInsideSwiftStringsStayStrings() {
+    let source = """
+    let pattern = String(repeating: "/*", count: 2)
+    let release = ["Release", "Beta"]
+    let end = text.range(of: "*/")
+    """
+    #expect(capture(of: "\"/*\"", in: source, language: "swift")?.hasPrefix("string") == true)
+    #expect(capture(of: "release", in: source, language: "swift")?.hasPrefix("comment") != true)
+    #expect(capture(of: "\"Release\"", in: source, language: "swift")?.hasPrefix("string") == true)
+}
+
+@Test(arguments: [
+    "foo(/* c */ x)", "let a = /* c */ 1", "let b = [1, /* c */ 2]", "/* c */ let c = 3",
+    "let d = \"x\" /* c */", "let e = \"\\(y /* c */)\"", "func f(/* c */ p: Int) {}", "let g = x + /* c */ y",
+])
+func blockCommentsInSwiftCodeStayComments(_ source: String) {
+    #expect(capture(of: "/* c */", in: source, language: "swift")?.hasPrefix("comment") == true)
+}
